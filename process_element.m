@@ -36,7 +36,7 @@ switch element.type
                 ' to node ' num2str(element.onu_dest)]);       
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% Policy of cache node allocation starts
+        %% Policy of Link Balancing starts
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
         a_s = element.content_source;
         trovati = find((link_for_dest(a_s,element.onu_dest) == 1));
@@ -49,11 +49,13 @@ switch element.type
                 j_cost = 1;
                 while(1)
                     element.src = a_s(trovati(i));
-                    token_of_path(i,j_cost) = get_token_path(token_matrix, ...
-                        path_matrix(element.src,element.onu_dest, ...
-                        j_cost).link_path)./length(path_matrix ...
-                        (element.src,element.onu_dest,j_cost).link_path);
-                    if (token_of_path(i,j_cost) > 0) && j_cost < size(path_matrix(:,:,:),3)
+                    token_of_path(i,j_cost) = get_token_path ...
+                        (token_matrix,path_matrix(element.src, ...
+                        element.onu_dest,j_cost).link_path)./ ...
+                        length(path_matrix(element.src, ...
+                        element.onu_dest,j_cost).link_path);
+                    if (token_of_path(i,j_cost) > 0) && j_cost < ...
+                            size(path_matrix(:,:,:),3)
                         j_cost = j_cost + 1;
                         continue
                     else
@@ -71,8 +73,107 @@ switch element.type
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% Policy of allocating caching node ends
+        %% Policy of Link Balancing ends
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         %% Policy of Node Balancing starts
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         a_s = element.content_source;
+%         c_i = 0;
+%         trovati = find((link_for_dest(a_s,element.onu_dest) == 1));
+%         lunghezza = length(trovati);
+%         if(lunghezza>1)
+%                 while(lunghezza-c_i > 0 )
+%                     if(token_matrix(1,2)/token_matrix ...
+%                             (a_s(trovati(lunghezza-c_i)), ...
+%                             a_s(trovati(lunghezza-c_i))+1) ...
+%                             >= 1 + p_average_global)
+%                         element.src = 1;
+%                         link_path = check_path(path_matrix ...
+%                             (element.src,element.onu_dest).link_path, ...
+%                             token_matrix,element.flow_req, ...
+%                             small_br,element.g_id);
+%                         break
+%                     end
+%                     element.src = a_s(trovati(lunghezza-c_i));
+%                     link_path = check_path(path_matrix(element.src, ...
+%                         element.onu_dest).link_path,token_matrix, ...
+%                         element.flow_req,small_br,element.g_id);
+%                     c_i = c_i + 1;            
+%                     if any(link_path,1)
+%                         break
+%                     else 
+%                         continue                
+%                     end          
+%                 end
+%         else
+%             element.src = a_s(trovati);
+%             link_path = check_path(path_matrix(element.src, ...
+%                 element.onu_dest).link_path,token_matrix, ...
+%                 element.flow_req,small_br,element.g_id);
+%         end
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         %% Policy of Node Balancing ends
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         %% Policy of Nearest Routing starts
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
+%         a_s = element.content_source;
+%         c_i = 0;
+%         trovati = find((link_for_dest(a_s,element.onu_dest) == 1));
+%         lunghezza = length(trovati);
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         % If at least one caching nodes can deliver the requested content.. 
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         if(lunghezza >= 1)
+%             while( lunghezza-c_i > 0 )
+%                 element.src = a_s(trovati(lunghezza-c_i));
+%                 tentativi = size(path_matrix(element.src, ...
+%                     element.onu_dest,:),3);
+%                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                 % If at least two paths can deliver the content ...
+%                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                 if tentativi > 1
+%                     for i = 1:tentativi
+%                         if path_matrix(element.src,element.onu_dest, ...
+%                                 i).link_path
+%                             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                             % Check the availability of shortest paths
+%                             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                             link_path = check_path(path_matrix(element.src, ...
+%                                 element.onu_dest,i).link_path,token_matrix, ...
+%                                 element.flow_req,small_br,element.g_id);                    
+%                             if link_path
+%                                 break
+%                             else
+%                                 continue
+%                             end
+%                         else
+%                             break
+%                         end
+%                     end
+%                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                 % If only one path has been found, check it directly
+%                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                 else
+%                     link_path = check_path(path_matrix(element.src, ...
+%                         element.onu_dest,1).link_path,token_matrix, ...
+%                         element.flow_req,small_br,element.g_id);                    
+%                 end
+%                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                 if link_path
+%                     break
+%                 else
+%                     c_i = c_i + 1;
+%                     continue
+%                 end                      
+%             end
+%         end
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         %% Policy of nearest routing ends caching node ends
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
         %% Connection request accepted
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -112,7 +213,7 @@ switch element.type
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % BCD behaviour
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            if use_queue == 1                                                                                            % Use queue
+            if use_queue == 1                                              
                 queue_list = [queue_list element];                
                 link_for_sim_new = link_for_sim;
                 if start_compute == 0
